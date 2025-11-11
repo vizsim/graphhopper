@@ -34,7 +34,19 @@ public class GraphHopperManaged implements Managed {
         if (configuration.has("gtfs.file")) {
             graphHopper = new GraphHopperGtfs(configuration);
         } else {
-            graphHopper = new GraphHopper();
+            // Ermöglicht Custom GraphHopper via Config
+            String graphHopperClass = configuration.getString("graph.custom_class", "");
+            if (!graphHopperClass.isEmpty()) {
+                try {
+                    Class<?> clazz = Class.forName(graphHopperClass);
+                    graphHopper = (GraphHopper) clazz.getDeclaredConstructor().newInstance();
+                    logger.info("Using custom GraphHopper class: {}", graphHopperClass);
+                } catch (Exception e) {
+                    throw new RuntimeException("Could not instantiate custom GraphHopper class: " + graphHopperClass, e);
+                }
+            } else {
+                graphHopper = new GraphHopper();
+            }
         }
         graphHopper.init(configuration);
     }
