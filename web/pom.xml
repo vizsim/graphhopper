@@ -61,6 +61,7 @@
     </dependencies>
 
     <build>
+        <finalName>graphhopper-web-11.0_custom</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
