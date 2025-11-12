@@ -28,43 +28,44 @@ public class BicycleInfraParser implements TagParser {
     /**
      * Kategorisiert einen Way basierend auf seinen Tags.
      * Die Reihenfolge ist wichtig - first match wins!
+     * Basiert auf der Precedence Order von BikelaneCategories.lua
      */
     private BicycleInfra categorize(ReaderWay way) {
-        // 1. Fahrradstraße mit Anlieger/Kfz frei
+        // 1. Geschützter Radfahrstreifen (Protected Bike Lane) - MUSS GANZ OBEN stehen!
+        if (isCyclewayOnHighwayProtected(way)) {
+            return BicycleInfra.CYCLEWAY_ON_HIGHWAY_PROTECTED;
+        }
+        
+        // 2. Radweg-Link
+        if (isCyclewayLink(way)) {
+            return BicycleInfra.CYCLEWAY_LINK;
+        }
+        
+        // 3. Straßenquerung
+        if (isCrossing(way)) {
+            return BicycleInfra.CROSSING;
+        }
+        
+        // 4. Fahrradstraße mit Anlieger/Kfz frei (muss vor normalem bicycleRoad kommen)
         BicycleInfra bicycleRoadType = getBicycleRoadType(way);
         if (bicycleRoadType != null) {
             return bicycleRoadType;
         }
         
-        // 2. Fußgängerzone mit Fahrrad frei
-        if (isPedestrianAreaBicycleYes(way)) {
-            return BicycleInfra.PEDESTRIAN_AREA_BICYCLE_YES;
-        }
-        
-        // 3. Busspur-Kategorien
+        // 5. Busspur-Kategorien
         BicycleInfra busLaneType = getSharedBusLaneType(way);
         if (busLaneType != null) {
             return busLaneType;
         }
         
-        // 4. Gemeinsamer Fahrstreifen
+        // 6. Fußgängerzone mit Fahrrad frei
+        if (isPedestrianAreaBicycleYes(way)) {
+            return BicycleInfra.PEDESTRIAN_AREA_BICYCLE_YES;
+        }
+        
+        // 7. Gemeinsamer Fahrstreifen
         if (isSharedMotorVehicleLane(way)) {
             return BicycleInfra.SHARED_MOTOR_VEHICLE_LANE;
-        }
-        
-        // 5. Radweg-Link
-        if (isCyclewayLink(way)) {
-            return BicycleInfra.CYCLEWAY_LINK;
-        }
-        
-        // 6. Straßenquerung
-        if (isCrossing(way)) {
-            return BicycleInfra.CROSSING;
-        }
-        
-        // 7. Geschützter Radfahrstreifen (Protected Bike Lane)
-        if (isCyclewayOnHighwayProtected(way)) {
-            return BicycleInfra.CYCLEWAY_ON_HIGHWAY_PROTECTED;
         }
         
         // 8. Radfahrstreifen in Mittellage (zwischen Fahrspuren)
@@ -72,13 +73,13 @@ public class BicycleInfraParser implements TagParser {
             return BicycleInfra.CYCLEWAY_ON_HIGHWAY_BETWEEN_LANES;
         }
         
-        // 9. Radfahrstreifen oder Schutzstreifen
+        // 9. Radfahrstreifen oder Schutzstreifen (advisory/exclusive)
         BicycleInfra laneType = getCyclewayOnHighwayType(way);
         if (laneType != null) {
             return laneType;
         }
         
-        // 10. Radwege (cycleway)
+        // 10. Radwege (cycleway) - baulich getrennt
         BicycleInfra cyclewayType = getCyclewayType(way);
         if (cyclewayType != null) {
             return cyclewayType;
@@ -158,33 +159,67 @@ public class BicycleInfraParser implements TagParser {
      * 3. Prüft Radfahrstreifen und Schutzstreifen auf der Fahrbahn.
      * Gibt CYCLEWAY_ON_HIGHWAY_EXCLUSIVE, CYCLEWAY_ON_HIGHWAY_ADVISORY 
      * oder CYCLEWAY_ON_HIGHWAY_ADVISORY_OR_EXCLUSIVE zurück.
+     * 
+     * Wichtig: Diese Methode gibt IMMER die spezifischste Kategorie zurück:
+     * - ADVISORY wenn lane=advisory
+     * - EXCLUSIVE wenn lane=exclusive  
+     * - ADVISORY_OR_EXCLUSIVE wenn lane vorhanden aber nicht spezifiziert
      */
     private BicycleInfra getCyclewayOnHighwayType(ReaderWay way) {
-        String laneValue = null;
-        
-        // Prüfe cycleway:*:lane Tag
-        if ("lane".equals(way.getTag("cycleway"))) {
-            laneValue = way.getTag("cycleway:lane");
-        } else if ("lane".equals(way.getTag("cycleway:right"))) {
-            laneValue = way.getTag("cycleway:right:lane");
-        } else if ("lane".equals(way.getTag("cycleway:left"))) {
-            laneValue = way.getTag("cycleway:left:lane");
-        } else if ("lane".equals(way.getTag("cycleway:both"))) {
-            laneValue = way.getTag("cycleway:both:lane");
-        }
-        
-        if (laneValue == null) {
+        // Nur auf highway=cycleway (transformierte Geometrie)
+        if (!"cycleway".equals(way.getTag("highway"))) {
             return null;
         }
         
-        if ("exclusive".equals(laneValue)) {
-            return BicycleInfra.CYCLEWAY_ON_HIGHWAY_EXCLUSIVE;
-        } else if ("advisory".equals(laneValue)) {
+        String cycleway = way.getTag("cycleway");
+        String lane = way.getTag("lane");
+        
+        // Muss cycleway=lane oder cycleway=opposite_lane sein
+        if (!"lane".equals(cycleway) && !"opposite_lane".equals(cycleway)) {
+            return null;
+        }
+        
+        // Spezialfall: Angstweichen (cyclewayOnHighwayBetweenLanes)
+        // Wenn "|lane|" in cycleway:lanes aber NICHT am Ende, dann ist es keine normale lane
+        String cyclewayLanes = way.getTag("cycleway:lanes");
+        String bicycleLanes = way.getTag("bicycle:lanes");
+        
+        if (hasCyclewayOnHighwayBetweenLanesConditions(way, cyclewayLanes, bicycleLanes)) {
+            // Prüfe ob es ZUSÄTZLICH noch eine normale lane am Ende gibt
+            if (cyclewayLanes != null && cyclewayLanes.contains("|lane|") && !cyclewayLanes.endsWith("|lane")) {
+                return null; // Nur Angstweiche, keine normale lane
+            }
+            if (bicycleLanes != null && bicycleLanes.contains("|designated|") && !bicycleLanes.endsWith("|designated")) {
+                return null; // Nur Angstweiche, keine normale lane
+            }
+        }
+        
+        // Jetzt prüfe lane-Typ: advisory, exclusive oder unbekannt
+        if ("advisory".equals(lane)) {
             return BicycleInfra.CYCLEWAY_ON_HIGHWAY_ADVISORY;
+        } else if ("exclusive".equals(lane)) {
+            return BicycleInfra.CYCLEWAY_ON_HIGHWAY_EXCLUSIVE;
         } else {
-            // Fallback wenn lane=* aber nicht advisory/exclusive
+            // Fallback wenn cycleway=lane aber lane-Typ nicht spezifiziert
             return BicycleInfra.CYCLEWAY_ON_HIGHWAY_ADVISORY_OR_EXCLUSIVE;
         }
+    }
+    
+    /**
+     * Hilfsmethode: Prüft ob cyclewayOnHighwayBetweenLanes Bedingungen erfüllt sind
+     */
+    private boolean hasCyclewayOnHighwayBetweenLanesConditions(ReaderWay way, String cyclewayLanes, String bicycleLanes) {
+        // Prüfe ob "|lane|" in cycleway:lanes vorkommt (lane zwischen anderen Spuren)
+        if (cyclewayLanes != null && cyclewayLanes.contains("|lane|")) {
+            return true;
+        }
+        
+        // Prüfe ob "|designated|" in bicycle:lanes vorkommt
+        if (bicycleLanes != null && bicycleLanes.contains("|designated|")) {
+            return true;
+        }
+        
+        return false;
     }
     
     /**
@@ -199,13 +234,18 @@ public class BicycleInfraParser implements TagParser {
         
         boolean isCycleway = false;
         
+        // GUARD: cycleway=lane ist NICHT cycleway (sondern on-highway)
+        if ("lane".equals(cycleway)) {
+            return null;
+        }
+        
         // highway=cycleway mit is_sidepath (wichtigster Fall!)
         if ("cycleway".equals(highway) && isSidepath != null) {
             isCycleway = true;
         }
         
         // highway=cycleway mit track-Tagging
-        if ("cycleway".equals(highway) && "track".equals(cycleway)) {
+        if ("cycleway".equals(highway) && ("track".equals(cycleway) || "opposite_track".equals(cycleway))) {
             isCycleway = true;
         }
         
@@ -216,9 +256,13 @@ public class BicycleInfraParser implements TagParser {
             isCycleway = true;
         }
         
-        // Verkehrszeichen DE:237
+        // Verkehrszeichen DE:237 (nur auf erlaubten highway-Typen)
         if (trafficSign != null && trafficSign.contains("DE:237")) {
-            if ("cycleway".equals(highway) || "path".equals(highway)) {
+            // Whitelist ähnlich wie in Lua (living_street, pedestrian, service, track, bridleway, path, footway, cycleway)
+            if ("living_street".equals(highway) || "pedestrian".equals(highway) || 
+                "service".equals(highway) || "track".equals(highway) || 
+                "bridleway".equals(highway) || "path".equals(highway) || 
+                "footway".equals(highway) || "cycleway".equals(highway)) {
                 isCycleway = true;
             }
         }
@@ -247,6 +291,31 @@ public class BicycleInfraParser implements TagParser {
         String segregated = way.getTag("segregated");
         String foot = way.getTag("foot");
         String bicycle = way.getTag("bicycle");
+        String cycleway = way.getTag("cycleway");
+        
+        // Spezialfall: highway=cycleway mit cycleway=track und segregated
+        if ("cycleway".equals(highway) && "track".equals(cycleway)) {
+            if ("no".equals(segregated) || (trafficSign != null && trafficSign.contains("240"))) {
+                String isSidepath = way.getTag("is_sidepath");
+                if ("yes".equals(isSidepath)) {
+                    return BicycleInfra.FOOT_AND_CYCLEWAY_SHARED_ADJOINING;
+                } else if ("no".equals(isSidepath)) {
+                    return BicycleInfra.FOOT_AND_CYCLEWAY_SHARED_ISOLATED;
+                } else {
+                    return BicycleInfra.FOOT_AND_CYCLEWAY_SHARED_ADJOINING_OR_ISOLATED;
+                }
+            }
+            if ("yes".equals(segregated) || (trafficSign != null && trafficSign.contains("241"))) {
+                String isSidepath = way.getTag("is_sidepath");
+                if ("yes".equals(isSidepath)) {
+                    return BicycleInfra.FOOT_AND_CYCLEWAY_SEGREGATED_ADJOINING;
+                } else if ("no".equals(isSidepath)) {
+                    return BicycleInfra.FOOT_AND_CYCLEWAY_SEGREGATED_ISOLATED;
+                } else {
+                    return BicycleInfra.FOOT_AND_CYCLEWAY_SEGREGATED_ADJOINING_OR_ISOLATED;
+                }
+            }
+        }
         
         // Nur auf cycleway-artigen highways
         if (!"cycleway".equals(highway) && !"path".equals(highway) && 
@@ -266,23 +335,51 @@ public class BicycleInfraParser implements TagParser {
         
         // Getrennt (segregated=yes oder traffic_sign DE:241)
         if ("yes".equals(segregated) || (trafficSign != null && trafficSign.contains("241"))) {
-            if ("yes".equals(isSidepath)) {
-                return BicycleInfra.FOOT_AND_CYCLEWAY_SEGREGATED_ADJOINING;
-            } else if ("no".equals(isSidepath)) {
-                return BicycleInfra.FOOT_AND_CYCLEWAY_SEGREGATED_ISOLATED;
-            } else {
-                return BicycleInfra.FOOT_AND_CYCLEWAY_SEGREGATED_ADJOINING_OR_ISOLATED;
+            // Nur auf cycleway-like highways (nicht auf service/track ohne weitere Prüfung)
+            if ("cycleway".equals(highway) || "path".equals(highway) || "footway".equals(highway)) {
+                if ("yes".equals(isSidepath)) {
+                    return BicycleInfra.FOOT_AND_CYCLEWAY_SEGREGATED_ADJOINING;
+                } else if ("no".equals(isSidepath)) {
+                    return BicycleInfra.FOOT_AND_CYCLEWAY_SEGREGATED_ISOLATED;
+                } else {
+                    return BicycleInfra.FOOT_AND_CYCLEWAY_SEGREGATED_ADJOINING_OR_ISOLATED;
+                }
+            }
+            
+            // Edge case: traffic_mode:right=foot für highway=cycleway (separate Geometrie)
+            if ("cycleway".equals(highway)) {
+                String trafficModeRight = way.getTag("traffic_mode:right");
+                String separationRight = way.getTag("separation:right");
+                
+                // Separation muss entweder fehlen oder "no" sein
+                boolean separationOk = separationRight == null || "no".equals(separationRight);
+                
+                if ("foot".equals(trafficModeRight) && separationOk) {
+                    if ("yes".equals(isSidepath)) {
+                        return BicycleInfra.FOOT_AND_CYCLEWAY_SEGREGATED_ADJOINING;
+                    } else if ("no".equals(isSidepath)) {
+                        return BicycleInfra.FOOT_AND_CYCLEWAY_SEGREGATED_ISOLATED;
+                    } else {
+                        return BicycleInfra.FOOT_AND_CYCLEWAY_SEGREGATED_ADJOINING_OR_ISOLATED;
+                    }
+                }
             }
         }
         
         // Gemeinsam (segregated=no oder traffic_sign DE:240)
         if ("no".equals(segregated) || (trafficSign != null && trafficSign.contains("240"))) {
-            if ("yes".equals(isSidepath)) {
-                return BicycleInfra.FOOT_AND_CYCLEWAY_SHARED_ADJOINING;
-            } else if ("no".equals(isSidepath)) {
-                return BicycleInfra.FOOT_AND_CYCLEWAY_SHARED_ISOLATED;
-            } else {
-                return BicycleInfra.FOOT_AND_CYCLEWAY_SHARED_ADJOINING_OR_ISOLATED;
+            // Erweiterte Whitelist wie in Lua: cycleway, path, footway, service, track
+            if ("cycleway".equals(highway) || "path".equals(highway) || 
+                "footway".equals(highway) || "service".equals(highway) || 
+                "track".equals(highway)) {
+                
+                if ("yes".equals(isSidepath)) {
+                    return BicycleInfra.FOOT_AND_CYCLEWAY_SHARED_ADJOINING;
+                } else if ("no".equals(isSidepath)) {
+                    return BicycleInfra.FOOT_AND_CYCLEWAY_SHARED_ISOLATED;
+                } else {
+                    return BicycleInfra.FOOT_AND_CYCLEWAY_SHARED_ADJOINING_OR_ISOLATED;
+                }
             }
         }
         
@@ -509,8 +606,12 @@ public class BicycleInfraParser implements TagParser {
         String cycleway = way.getTag("cycleway");
         String foot = way.getTag("foot");
         
-        // HACK: Filter für cyclewayOnHighwayBetweenLanes auf sides
-        if (isCyclewayOnHighwayBetweenLanes(way)) {
+        String cyclewayLanes = way.getTag("cycleway:lanes");
+        String bicycleLanes = way.getTag("bicycle:lanes");
+        
+        // HACK: Filter für cyclewayOnHighwayBetweenLanes
+        // Wenn diese Bedingungen erfüllt sind, wurde es bereits kategorisiert
+        if (hasCyclewayOnHighwayBetweenLanesConditions(way, cyclewayLanes, bicycleLanes)) {
             return false;
         }
         
