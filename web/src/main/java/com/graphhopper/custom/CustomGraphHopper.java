@@ -2,6 +2,8 @@ package com.graphhopper.custom;
 
 import com.graphhopper.GraphHopper;
 import com.graphhopper.GraphHopperConfig;
+import com.graphhopper.reader.osm.custom.BicycleInfraImportUnit;
+import com.graphhopper.reader.osm.custom.BicycleInfraParser;
 import com.graphhopper.reader.osm.custom.CustomCsvLoader;
 import com.graphhopper.reader.osm.custom.CustomPresentParser;
 import com.graphhopper.routing.ev.*;
@@ -22,16 +24,22 @@ public class CustomGraphHopper extends GraphHopper {
 
     public CustomGraphHopper() {
         super();
-        // Setze eine erweiterte ImportRegistry, die custom_present kennt
+        // Setze eine erweiterte ImportRegistry, die custom EncodedValues kennt
         setImportRegistry(new ImportRegistry() {
             private final ImportRegistry defaultRegistry = new DefaultImportRegistry();
             
             @Override
             public ImportUnit createImportUnit(String name) {
-                // Prüfe ob es unser custom EncodedValue ist
+                // Custom CSV-basiertes EncodedValue
                 if (customConfig != null && customConfig.getName().equals(name)) {
                     return CustomPresentImportUnit.create(customConfig.getName());
                 }
+                
+                // Bicycle infrastructure EncodedValue
+                if (BicycleInfraEV.KEY.equals(name)) {
+                    return BicycleInfraImportUnit.create();
+                }
+                
                 return defaultRegistry.createImportUnit(name);
             }
         });
@@ -88,6 +96,7 @@ public class CustomGraphHopper extends GraphHopper {
         OSMParsers parsers = super.buildOSMParsers(encodedValuesWithProps, activeImportUnits,
                 restrictionVehicleTypesByProfile, ignoredHighways);
 
+        // CSV-basiertes Custom EncodedValue
         if (customConfig == null) {
             customConfig = new CustomEncodedValueConfig(); // Fallback auf Defaults
         }
@@ -102,6 +111,15 @@ public class CustomGraphHopper extends GraphHopper {
             customConfig.getTrueValues()
         );
         parsers.addWayTagParser(new CustomPresentParser(customPresentEV, map));
+        
+        // Bicycle Infrastructure EncodedValue (OSM-Tag basiert)
+        if (activeImportUnits.containsKey(BicycleInfraEV.KEY)) {
+            EnumEncodedValue<BicycleInfra> bicycleInfraEV = 
+                getEncodingManager().getEnumEncodedValue(BicycleInfraEV.KEY, BicycleInfra.class);
+            parsers.addWayTagParser(new BicycleInfraParser(bicycleInfraEV));
+            logger.info("Added BicycleInfraParser for '{}'", BicycleInfraEV.KEY);
+        }
+        
         return parsers;
     }
 }
