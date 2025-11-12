@@ -73,10 +73,19 @@ public class BicycleInfraParser implements TagParser {
             return BicycleInfra.CYCLEWAY_ON_HIGHWAY_BETWEEN_LANES;
         }
         
-        // 9. Radfahrstreifen oder Schutzstreifen (advisory/exclusive)
-        BicycleInfra laneType = getCyclewayOnHighwayType(way);
-        if (laneType != null) {
-            return laneType;
+        // 9a. Radfahrstreifen oder Schutzstreifen - Schutzstreifen (advisory)
+        if (isCyclewayOnHighwayAdvisory(way)) {
+            return BicycleInfra.CYCLEWAY_ON_HIGHWAY_ADVISORY;
+        }
+        
+        // 9b. Radfahrstreifen oder Schutzstreifen - Radfahrstreifen (exclusive)
+        if (isCyclewayOnHighwayExclusive(way)) {
+            return BicycleInfra.CYCLEWAY_ON_HIGHWAY_EXCLUSIVE;
+        }
+        
+        // 9c. Radfahrstreifen oder Schutzstreifen - nicht spezifiziert
+        if (isCyclewayOnHighwayAdvisoryOrExclusive(way)) {
+            return BicycleInfra.CYCLEWAY_ON_HIGHWAY_ADVISORY_OR_EXCLUSIVE;
         }
         
         // 10. Radwege (cycleway) - baulich getrennt
@@ -156,27 +165,20 @@ public class BicycleInfraParser implements TagParser {
     }
     
     /**
-     * 3. Prüft Radfahrstreifen und Schutzstreifen auf der Fahrbahn.
-     * Gibt CYCLEWAY_ON_HIGHWAY_EXCLUSIVE, CYCLEWAY_ON_HIGHWAY_ADVISORY 
-     * oder CYCLEWAY_ON_HIGHWAY_ADVISORY_OR_EXCLUSIVE zurück.
-     * 
-     * Wichtig: Diese Methode gibt IMMER die spezifischste Kategorie zurück:
-     * - ADVISORY wenn lane=advisory
-     * - EXCLUSIVE wenn lane=exclusive  
-     * - ADVISORY_OR_EXCLUSIVE wenn lane vorhanden aber nicht spezifiziert
+     * 3a. Basis-Check: Prüft ob es ein Radfahrstreifen/Schutzstreifen auf der Fahrbahn ist.
+     * Wird von den spezifischen Methoden aufgerufen.
      */
-    private BicycleInfra getCyclewayOnHighwayType(ReaderWay way) {
+    private boolean isCyclewayOnHighwayAdvisoryOrExclusive(ReaderWay way) {
         // Nur auf highway=cycleway (transformierte Geometrie)
         if (!"cycleway".equals(way.getTag("highway"))) {
-            return null;
+            return false;
         }
         
         String cycleway = way.getTag("cycleway");
-        String lane = way.getTag("lane");
         
         // Muss cycleway=lane oder cycleway=opposite_lane sein
         if (!"lane".equals(cycleway) && !"opposite_lane".equals(cycleway)) {
-            return null;
+            return false;
         }
         
         // Spezialfall: Angstweichen (cyclewayOnHighwayBetweenLanes)
@@ -187,22 +189,38 @@ public class BicycleInfraParser implements TagParser {
         if (hasCyclewayOnHighwayBetweenLanesConditions(way, cyclewayLanes, bicycleLanes)) {
             // Prüfe ob es ZUSÄTZLICH noch eine normale lane am Ende gibt
             if (cyclewayLanes != null && cyclewayLanes.contains("|lane|") && !cyclewayLanes.endsWith("|lane")) {
-                return null; // Nur Angstweiche, keine normale lane
+                return false; // Nur Angstweiche, keine normale lane
             }
             if (bicycleLanes != null && bicycleLanes.contains("|designated|") && !bicycleLanes.endsWith("|designated")) {
-                return null; // Nur Angstweiche, keine normale lane
+                return false; // Nur Angstweiche, keine normale lane
             }
         }
         
-        // Jetzt prüfe lane-Typ: advisory, exclusive oder unbekannt
-        if ("advisory".equals(lane)) {
-            return BicycleInfra.CYCLEWAY_ON_HIGHWAY_ADVISORY;
-        } else if ("exclusive".equals(lane)) {
-            return BicycleInfra.CYCLEWAY_ON_HIGHWAY_EXCLUSIVE;
-        } else {
-            // Fallback wenn cycleway=lane aber lane-Typ nicht spezifiziert
-            return BicycleInfra.CYCLEWAY_ON_HIGHWAY_ADVISORY_OR_EXCLUSIVE;
+        return true;
+    }
+    
+    /**
+     * 3b. Prüft ob es ein Schutzstreifen (advisory lane) ist.
+     */
+    private boolean isCyclewayOnHighwayAdvisory(ReaderWay way) {
+        if (!isCyclewayOnHighwayAdvisoryOrExclusive(way)) {
+            return false;
         }
+        
+        String lane = way.getTag("lane");
+        return "advisory".equals(lane);
+    }
+    
+    /**
+     * 3c. Prüft ob es ein Radfahrstreifen (exclusive lane) ist.
+     */
+    private boolean isCyclewayOnHighwayExclusive(ReaderWay way) {
+        if (!isCyclewayOnHighwayAdvisoryOrExclusive(way)) {
+            return false;
+        }
+        
+        String lane = way.getTag("lane");
+        return "exclusive".equals(lane);
     }
     
     /**
