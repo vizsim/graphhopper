@@ -21,16 +21,24 @@ public class BicycleInfraParser implements TagParser {
     
     @Override
     public void handleWayTags(int edgeId, EdgeIntAccess edgeIntAccess, ReaderWay way, IntsRef relationFlags) {
-        BicycleInfra category = categorize(way);
-        bicycleInfraEnc.setEnum(false, edgeId, edgeIntAccess, category);
+        // Kategorisiere für beide Richtungen (forward und backward)
+        BicycleInfra forward = categorizeForDirection(way, true);
+        BicycleInfra backward = categorizeForDirection(way, false);
+        
+        bicycleInfraEnc.setEnum(false, edgeId, edgeIntAccess, forward);
+        bicycleInfraEnc.setEnum(true, edgeId, edgeIntAccess, backward);
     }
     
     /**
-     * Kategorisiert einen Way basierend auf seinen Tags.
+     * Kategorisiert einen Way basierend auf seinen Tags für eine bestimmte Fahrtrichtung.
      * Die Reihenfolge ist wichtig - first match wins!
      * Basiert auf der Precedence Order von BikelaneCategories.lua
+     * 
+     * @param way Der OSM Way
+     * @param forward true für Vorwärtsrichtung, false für Rückwärtsrichtung
+     * @return Die passende BicycleInfra Kategorie für diese Richtung
      */
-    private BicycleInfra categorize(ReaderWay way) {
+    private BicycleInfra categorizeForDirection(ReaderWay way, boolean forward) {
         // 1. Geschützter Radfahrstreifen (Protected Bike Lane) - MUSS GANZ OBEN stehen!
         if (isCyclewayOnHighwayProtected(way)) {
             return BicycleInfra.CYCLEWAY_ON_HIGHWAY_PROTECTED;
@@ -53,7 +61,7 @@ public class BicycleInfraParser implements TagParser {
         }
         
         // 5. Busspur-Kategorien
-        BicycleInfra busLaneType = getSharedBusLaneType(way);
+        BicycleInfra busLaneType = getSharedBusLaneTypeForDirection(way, forward);
         if (busLaneType != null) {
             return busLaneType;
         }
@@ -64,7 +72,7 @@ public class BicycleInfraParser implements TagParser {
         }
         
         // 7. Gemeinsamer Fahrstreifen
-        if (isSharedMotorVehicleLane(way)) {
+        if (isSharedMotorVehicleLaneForDirection(way, forward)) {
             return BicycleInfra.SHARED_MOTOR_VEHICLE_LANE;
         }
         
@@ -74,22 +82,25 @@ public class BicycleInfraParser implements TagParser {
         }
         
         // 9a. Radfahrstreifen oder Schutzstreifen - Schutzstreifen (advisory)
-        if (isCyclewayOnHighwayAdvisory(way)) {
-            return BicycleInfra.CYCLEWAY_ON_HIGHWAY_ADVISORY;
+        BicycleInfra advisory = getCyclewayOnHighwayAdvisoryForDirection(way, forward);
+        if (advisory != null) {
+            return advisory;
         }
         
         // 9b. Radfahrstreifen oder Schutzstreifen - Radfahrstreifen (exclusive)
-        if (isCyclewayOnHighwayExclusive(way)) {
-            return BicycleInfra.CYCLEWAY_ON_HIGHWAY_EXCLUSIVE;
+        BicycleInfra exclusive = getCyclewayOnHighwayExclusiveForDirection(way, forward);
+        if (exclusive != null) {
+            return exclusive;
         }
         
         // 9c. Radfahrstreifen oder Schutzstreifen - nicht spezifiziert
-        if (isCyclewayOnHighwayAdvisoryOrExclusive(way)) {
-            return BicycleInfra.CYCLEWAY_ON_HIGHWAY_ADVISORY_OR_EXCLUSIVE;
+        BicycleInfra advisoryOrExclusive = getCyclewayOnHighwayAdvisoryOrExclusiveForDirection(way, forward);
+        if (advisoryOrExclusive != null) {
+            return advisoryOrExclusive;
         }
         
         // 10. Radwege (cycleway) - baulich getrennt
-        BicycleInfra cyclewayType = getCyclewayType(way);
+        BicycleInfra cyclewayType = getCyclewayTypeForDirection(way, forward);
         if (cyclewayType != null) {
             return cyclewayType;
         }
@@ -101,7 +112,7 @@ public class BicycleInfraParser implements TagParser {
         }
         
         // 12. Gehweg mit Radwegfreigabe
-        BicycleInfra footwayType = getFootwayBicycleYesType(way);
+        BicycleInfra footwayType = getFootwayBicycleYesTypeForDirection(way, forward);
         if (footwayType != null) {
             return footwayType;
         }
@@ -169,15 +180,19 @@ public class BicycleInfraParser implements TagParser {
      * Wird von den spezifischen Methoden aufgerufen.
      */
     private boolean isCyclewayOnHighwayAdvisoryOrExclusive(ReaderWay way) {
-        // Nur auf highway=cycleway (transformierte Geometrie)
-        if (!"cycleway".equals(way.getTag("highway"))) {
-            return false;
-        }
-        
+        // Prüfe alle möglichen cycleway Tags: cycleway, cycleway:right, cycleway:left, cycleway:both
         String cycleway = way.getTag("cycleway");
+        String cyclewayRight = way.getTag("cycleway:right");
+        String cyclewayLeft = way.getTag("cycleway:left");
+        String cyclewayBoth = way.getTag("cycleway:both");
         
-        // Muss cycleway=lane oder cycleway=opposite_lane sein
-        if (!"lane".equals(cycleway) && !"opposite_lane".equals(cycleway)) {
+        // Mindestens eines muss "lane" oder "opposite_lane" sein
+        boolean hasLane = "lane".equals(cycleway) || "opposite_lane".equals(cycleway) ||
+                          "lane".equals(cyclewayRight) || "opposite_lane".equals(cyclewayRight) ||
+                          "lane".equals(cyclewayLeft) || "opposite_lane".equals(cyclewayLeft) ||
+                          "lane".equals(cyclewayBoth) || "opposite_lane".equals(cyclewayBoth);
+        
+        if (!hasLane) {
             return false;
         }
         
@@ -202,25 +217,135 @@ public class BicycleInfraParser implements TagParser {
     /**
      * 3b. Prüft ob es ein Schutzstreifen (advisory lane) ist.
      */
-    private boolean isCyclewayOnHighwayAdvisory(ReaderWay way) {
+    /**
+     * 3a. Prüft ob es ein Schutzstreifen (advisory lane) ist - richtungsabhängig.
+     * forward=true: prüft cycleway:right, cycleway:both, cycleway
+     * forward=false: prüft cycleway:left, cycleway:both, cycleway
+     * Berücksichtigt cycleway:left:oneway=no und cycleway:right:oneway=no für bidirektionale Radwege
+     */
+    private BicycleInfra getCyclewayOnHighwayAdvisoryForDirection(ReaderWay way, boolean forward) {
         if (!isCyclewayOnHighwayAdvisoryOrExclusive(way)) {
-            return false;
+            return null;
         }
         
-        String lane = way.getTag("lane");
-        return "advisory".equals(lane);
+        // Bestimme welche Seiten-Tags für diese Richtung relevant sind
+        boolean hasAdvisory = false;
+        
+        // Prüfe rechte Seite
+        String laneRight = way.getTag("cycleway:right:lane");
+        String onewayRight = way.getTag("cycleway:right:oneway");
+        boolean rightBidirectional = "no".equals(onewayRight);
+        boolean checkRight = forward || rightBidirectional;
+        
+        if (checkRight && "advisory".equals(laneRight)) {
+            hasAdvisory = true;
+        }
+        
+        // Prüfe linke Seite
+        String laneLeft = way.getTag("cycleway:left:lane");
+        String onewayLeft = way.getTag("cycleway:left:oneway");
+        boolean leftBidirectional = "no".equals(onewayLeft);
+        boolean checkLeft = !forward || leftBidirectional;
+        
+        if (checkLeft && "advisory".equals(laneLeft)) {
+            hasAdvisory = true;
+        }
+        
+        // Prüfe beide Seiten und generisches Tag (gelten immer)
+        String laneBoth = way.getTag("cycleway:both:lane");
+        String lane = way.getTag("cycleway:lane");
+        
+        if ("advisory".equals(laneBoth) || "advisory".equals(lane)) {
+            hasAdvisory = true;
+        }
+        
+        return hasAdvisory ? BicycleInfra.CYCLEWAY_ON_HIGHWAY_ADVISORY : null;
     }
     
     /**
-     * 3c. Prüft ob es ein Radfahrstreifen (exclusive lane) ist.
+     * 3b. Prüft ob es ein Radfahrstreifen (exclusive lane) ist - richtungsabhängig.
+     * forward=true: prüft cycleway:right, cycleway:both, cycleway
+     * forward=false: prüft cycleway:left, cycleway:both, cycleway
+     * Berücksichtigt cycleway:left:oneway=no und cycleway:right:oneway=no für bidirektionale Radwege
      */
-    private boolean isCyclewayOnHighwayExclusive(ReaderWay way) {
+    private BicycleInfra getCyclewayOnHighwayExclusiveForDirection(ReaderWay way, boolean forward) {
         if (!isCyclewayOnHighwayAdvisoryOrExclusive(way)) {
-            return false;
+            return null;
         }
         
-        String lane = way.getTag("lane");
-        return "exclusive".equals(lane);
+        boolean hasExclusive = false;
+        
+        // Prüfe rechte Seite
+        String laneRight = way.getTag("cycleway:right:lane");
+        String onewayRight = way.getTag("cycleway:right:oneway");
+        boolean rightBidirectional = "no".equals(onewayRight);
+        boolean checkRight = forward || rightBidirectional;
+        
+        if (checkRight && "exclusive".equals(laneRight)) {
+            hasExclusive = true;
+        }
+        
+        // Prüfe linke Seite
+        String laneLeft = way.getTag("cycleway:left:lane");
+        String onewayLeft = way.getTag("cycleway:left:oneway");
+        boolean leftBidirectional = "no".equals(onewayLeft);
+        boolean checkLeft = !forward || leftBidirectional;
+        
+        if (checkLeft && "exclusive".equals(laneLeft)) {
+            hasExclusive = true;
+        }
+        
+        // Prüfe beide Seiten und generisches Tag (gelten immer)
+        String laneBoth = way.getTag("cycleway:both:lane");
+        String lane = way.getTag("cycleway:lane");
+        
+        if ("exclusive".equals(laneBoth) || "exclusive".equals(lane)) {
+            hasExclusive = true;
+        }
+        
+        return hasExclusive ? BicycleInfra.CYCLEWAY_ON_HIGHWAY_EXCLUSIVE : null;
+    }
+    
+    /**
+     * 3c. Prüft ob es ein Radfahrstreifen oder Schutzstreifen ist (nicht spezifiziert) - richtungsabhängig.
+     * forward=true: prüft cycleway:right, cycleway:both, cycleway
+     * forward=false: prüft cycleway:left, cycleway:both, cycleway
+     * Berücksichtigt cycleway:left:oneway=no und cycleway:right:oneway=no für bidirektionale Radwege
+     */
+    private BicycleInfra getCyclewayOnHighwayAdvisoryOrExclusiveForDirection(ReaderWay way, boolean forward) {
+        // Diese Methode prüft nur ob cycleway=lane vorhanden ist (ohne advisory/exclusive Spezifizierung)
+        boolean hasLane = false;
+        
+        // Prüfe rechte Seite
+        String cyclewayRight = way.getTag("cycleway:right");
+        String onewayRight = way.getTag("cycleway:right:oneway");
+        boolean rightBidirectional = "no".equals(onewayRight);
+        boolean checkRight = forward || rightBidirectional;
+        
+        if (checkRight && ("lane".equals(cyclewayRight) || "opposite_lane".equals(cyclewayRight))) {
+            hasLane = true;
+        }
+        
+        // Prüfe linke Seite
+        String cyclewayLeft = way.getTag("cycleway:left");
+        String onewayLeft = way.getTag("cycleway:left:oneway");
+        boolean leftBidirectional = "no".equals(onewayLeft);
+        boolean checkLeft = !forward || leftBidirectional;
+        
+        if (checkLeft && ("lane".equals(cyclewayLeft) || "opposite_lane".equals(cyclewayLeft))) {
+            hasLane = true;
+        }
+        
+        // Prüfe beide Seiten und generisches Tag (gelten immer)
+        String cyclewayBoth = way.getTag("cycleway:both");
+        String cycleway = way.getTag("cycleway");
+        
+        if ("lane".equals(cyclewayBoth) || "opposite_lane".equals(cyclewayBoth) ||
+            "lane".equals(cycleway) || "opposite_lane".equals(cycleway)) {
+            hasLane = true;
+        }
+        
+        return hasLane ? BicycleInfra.CYCLEWAY_ON_HIGHWAY_ADVISORY_OR_EXCLUSIVE : null;
     }
     
     /**
@@ -244,7 +369,13 @@ public class BicycleInfraParser implements TagParser {
      * 4. Prüft baulich getrennte Radwege.
      * Gibt CYCLEWAY_ADJOINING, CYCLEWAY_ISOLATED oder CYCLEWAY_ADJOINING_OR_ISOLATED zurück.
      */
-    private BicycleInfra getCyclewayType(ReaderWay way) {
+    /**
+     * 4. Prüft baulich getrennte Radwege - richtungsabhängig.
+     * Gibt CYCLEWAY_ADJOINING, CYCLEWAY_ISOLATED oder CYCLEWAY_ADJOINING_OR_ISOLATED zurück.
+     * forward=true: prüft cycleway:right, cycleway:both, cycleway
+     * forward=false: prüft cycleway:left, cycleway:both, cycleway
+     */
+    private BicycleInfra getCyclewayTypeForDirection(ReaderWay way, boolean forward) {
         String highway = way.getTag("highway");
         String cycleway = way.getTag("cycleway");
         String trafficSign = way.getTag("traffic_sign");
@@ -258,23 +389,37 @@ public class BicycleInfraParser implements TagParser {
         }
         
         // highway=cycleway mit is_sidepath (wichtigster Fall!)
+        // Dies ist nicht richtungsabhängig, da der gesamte Way ein Radweg ist
         if ("cycleway".equals(highway) && isSidepath != null) {
             isCycleway = true;
         }
         
         // highway=cycleway mit track-Tagging
+        // Auch nicht richtungsabhängig
         if ("cycleway".equals(highway) && ("track".equals(cycleway) || "opposite_track".equals(cycleway))) {
             isCycleway = true;
         }
         
-        // cycleway:side=track
-        if ("track".equals(way.getTag("cycleway:right")) || 
-            "track".equals(way.getTag("cycleway:left")) ||
-            "track".equals(way.getTag("cycleway:both"))) {
+        // cycleway:side=track - HIER ist die Richtungsabhängigkeit wichtig!
+        if (forward) {
+            if ("track".equals(way.getTag("cycleway:right")) || 
+                "track".equals(way.getTag("cycleway:both"))) {
+                isCycleway = true;
+            }
+        } else {
+            if ("track".equals(way.getTag("cycleway:left")) || 
+                "track".equals(way.getTag("cycleway:both"))) {
+                isCycleway = true;
+            }
+        }
+        
+        // Auch generisches cycleway=track prüfen (gilt für beide Richtungen)
+        if ("track".equals(cycleway)) {
             isCycleway = true;
         }
         
         // Verkehrszeichen DE:237 (nur auf erlaubten highway-Typen)
+        // Nicht richtungsabhängig, da es den gesamten Way betrifft
         if (trafficSign != null && trafficSign.contains("DE:237")) {
             // Whitelist ähnlich wie in Lua (living_street, pedestrian, service, track, bridleway, path, footway, cycleway)
             if ("living_street".equals(highway) || "pedestrian".equals(highway) || 
@@ -405,13 +550,47 @@ public class BicycleInfraParser implements TagParser {
     }
     
     /**
-     * 6. Prüft Gehweg mit Radwegfreigabe ("Gehweg, Fahrrad frei").
+     * 6. Prüft Gehweg mit Radwegfreigabe ("Gehweg, Fahrrad frei") - richtungsabhängig.
      * Gibt FOOTWAY_BICYCLE_YES_* zurück.
+     * forward=true: prüft sidewalk:right:bicycle, sidewalk:both:bicycle, oder highway=footway/path
+     * forward=false: prüft sidewalk:left:bicycle, sidewalk:both:bicycle, oder highway=footway/path
      */
-    private BicycleInfra getFootwayBicycleYesType(ReaderWay way) {
+    private BicycleInfra getFootwayBicycleYesTypeForDirection(ReaderWay way, boolean forward) {
         String highway = way.getTag("highway");
+        boolean hasBicycleAccess = false;
+        boolean isSidewalk = false;
         
-        // Nur highway=footway oder highway=path
+        // Fall 1: sidewalk:right/left/both:bicycle=yes (richtungsabhängig)
+        // Diese Tags stehen am Straßen-Way, nicht am Gehweg selbst
+        
+        // Prüfe rechte Seite (forward direction)
+        String sidewalkRightBicycle = way.getTag("sidewalk:right:bicycle");
+        if (forward && "yes".equals(sidewalkRightBicycle)) {
+            hasBicycleAccess = true;
+            isSidewalk = true;
+        }
+        
+        // Prüfe linke Seite (backward direction)
+        String sidewalkLeftBicycle = way.getTag("sidewalk:left:bicycle");
+        if (!forward && "yes".equals(sidewalkLeftBicycle)) {
+            hasBicycleAccess = true;
+            isSidewalk = true;
+        }
+        
+        // Prüfe beide Seiten (gilt für beide Richtungen)
+        String sidewalkBothBicycle = way.getTag("sidewalk:both:bicycle");
+        if ("yes".equals(sidewalkBothBicycle)) {
+            hasBicycleAccess = true;
+            isSidewalk = true;
+        }
+        
+        // Falls via sidewalk:* erkannt, gib adjoining zurück (ist per Definition straßenbegleitend)
+        if (isSidewalk && hasBicycleAccess) {
+            return BicycleInfra.FOOTWAY_BICYCLE_YES_ADJOINING;
+        }
+        
+        // Fall 2: highway=footway oder highway=path (separate Geometrie)
+        // Nicht richtungsabhängig, da der gesamte Way ein Gehweg ist
         if (!"footway".equals(highway) && !"path".equals(highway)) {
             return null;
         }
@@ -420,8 +599,8 @@ public class BicycleInfraParser implements TagParser {
         String trafficSign = way.getTag("traffic_sign");
         
         // Muss bicycle=yes haben oder Verkehrszeichen DE:1022-10 (Fahrrad frei)
-        boolean hasBicycleAccess = "yes".equals(bicycle) || 
-                                   (trafficSign != null && trafficSign.contains("1022-10"));
+        hasBicycleAccess = "yes".equals(bicycle) || 
+                           (trafficSign != null && trafficSign.contains("1022-10"));
         
         if (!hasBicycleAccess) {
             return null;
@@ -493,51 +672,122 @@ public class BicycleInfraParser implements TagParser {
     }
     
     /**
-     * 9. Prüft Busspur-Kategorien.
+     * 9. Prüft Busspur-Kategorien - richtungsabhängig.
      * Gibt SHARED_BUS_LANE_BUS_WITH_BIKE oder SHARED_BUS_LANE_BIKE_WITH_BUS zurück.
+     * forward=true: prüft cycleway:right, cycleway:both, cycleway, busway:right
+     * forward=false: prüft cycleway:left, cycleway:both, cycleway, busway:left
      */
-    private BicycleInfra getSharedBusLaneType(ReaderWay way) {
+    private BicycleInfra getSharedBusLaneTypeForDirection(ReaderWay way, boolean forward) {
         String highway = way.getTag("highway");
         String cycleway = way.getTag("cycleway");
-        String lane = way.getTag("lane");
         String trafficSign = way.getTag("traffic_sign");
         
-        // Nur auf transformierten highway=cycleway Geometrien
-        if (!"cycleway".equals(highway)) {
-            return null;
-        }
-        
-        // Bussonderfahrstreifen mit Fahrrad frei (DE:245 mit 1022-10 oder 1022-14)
-        if ("share_busway".equals(cycleway) || "opposite_share_busway".equals(cycleway)) {
-            return BicycleInfra.SHARED_BUS_LANE_BUS_WITH_BIKE;
-        }
-        
-        if (trafficSign != null && trafficSign.startsWith("DE:245")) {
-            if (trafficSign.contains("1022-10") || trafficSign.contains("1022-14")) {
+        // Fall 1: highway=cycleway (transformierte Geometrie in osm2pgsql, aber nicht in GraphHopper)
+        // In GraphHopper bleiben die originalen Tags erhalten
+        if ("cycleway".equals(highway)) {
+            if ("share_busway".equals(cycleway) || "opposite_share_busway".equals(cycleway)) {
                 return BicycleInfra.SHARED_BUS_LANE_BUS_WITH_BIKE;
             }
-        }
-        
-        // Radfahrstreifen mit Freigabe Busverkehr (DE:237 mit 1024-14 oder 1026-32)
-        if ("share_busway".equals(lane)) {
-            return BicycleInfra.SHARED_BUS_LANE_BIKE_WITH_BUS;
-        }
-        
-        if (trafficSign != null && trafficSign.startsWith("DE:237")) {
-            if (trafficSign.contains("1024-14") || trafficSign.contains("1026-32")) {
+            
+            if (trafficSign != null && trafficSign.startsWith("DE:245")) {
+                if (trafficSign.contains("1022-10") || trafficSign.contains("1022-14")) {
+                    return BicycleInfra.SHARED_BUS_LANE_BUS_WITH_BIKE;
+                }
+            }
+            
+            String lane = way.getTag("lane");
+            if ("share_busway".equals(lane)) {
                 return BicycleInfra.SHARED_BUS_LANE_BIKE_WITH_BUS;
             }
+            
+            if (trafficSign != null && trafficSign.startsWith("DE:237")) {
+                if (trafficSign.contains("1024-14") || trafficSign.contains("1026-32")) {
+                    return BicycleInfra.SHARED_BUS_LANE_BIKE_WITH_BUS;
+                }
+            }
+        }
+        
+        // Fall 2: cycleway:right/left/both=share_busway (richtungsabhängig)
+        boolean hasBusLane = false;
+        BicycleInfra busLaneType = null;
+        
+        // Prüfe rechte Seite
+        String cyclewayRight = way.getTag("cycleway:right");
+        String buswayRight = way.getTag("busway:right");
+        if (forward && ("share_busway".equals(cyclewayRight) || "share_busway".equals(buswayRight))) {
+            hasBusLane = true;
+            busLaneType = BicycleInfra.SHARED_BUS_LANE_BUS_WITH_BIKE;
+        }
+        
+        // Prüfe linke Seite
+        String cyclewayLeft = way.getTag("cycleway:left");
+        String buswayLeft = way.getTag("busway:left");
+        if (!forward && ("share_busway".equals(cyclewayLeft) || "share_busway".equals(buswayLeft))) {
+            hasBusLane = true;
+            busLaneType = BicycleInfra.SHARED_BUS_LANE_BUS_WITH_BIKE;
+        }
+        
+        // Prüfe beide Seiten (gilt für beide Richtungen)
+        String cyclewayBoth = way.getTag("cycleway:both");
+        String buswayBoth = way.getTag("busway:both");
+        if ("share_busway".equals(cyclewayBoth) || "share_busway".equals(buswayBoth)) {
+            hasBusLane = true;
+            busLaneType = BicycleInfra.SHARED_BUS_LANE_BUS_WITH_BIKE;
+        }
+        
+        // Generisches Tag (gilt für beide Richtungen)
+        if ("share_busway".equals(cycleway) || "opposite_share_busway".equals(cycleway)) {
+            hasBusLane = true;
+            busLaneType = BicycleInfra.SHARED_BUS_LANE_BUS_WITH_BIKE;
+        }
+        
+        if (hasBusLane) {
+            return busLaneType;
         }
         
         return null;
     }
     
     /**
-     * 10. Prüft gemeinsamer Fahrstreifen (Piktogramme auf Fahrbahn).
+     * 10. Prüft gemeinsamer Fahrstreifen (Piktogramme auf Fahrbahn) - richtungsabhängig.
+     * forward=true: prüft cycleway:right, cycleway:both, cycleway
+     * forward=false: prüft cycleway:left, cycleway:both, cycleway
      */
-    private boolean isSharedMotorVehicleLane(ReaderWay way) {
-        return "cycleway".equals(way.getTag("highway")) && 
-               "shared_lane".equals(way.getTag("cycleway"));
+    private boolean isSharedMotorVehicleLaneForDirection(ReaderWay way, boolean forward) {
+        String highway = way.getTag("highway");
+        String cycleway = way.getTag("cycleway");
+        
+        // Fall 1: highway=cycleway (transformierte Geometrie)
+        if ("cycleway".equals(highway) && "shared_lane".equals(cycleway)) {
+            return true;
+        }
+        
+        // Fall 2: cycleway:right/left/both=shared_lane (richtungsabhängig)
+        
+        // Prüfe rechte Seite
+        String cyclewayRight = way.getTag("cycleway:right");
+        if (forward && "shared_lane".equals(cyclewayRight)) {
+            return true;
+        }
+        
+        // Prüfe linke Seite
+        String cyclewayLeft = way.getTag("cycleway:left");
+        if (!forward && "shared_lane".equals(cyclewayLeft)) {
+            return true;
+        }
+        
+        // Prüfe beide Seiten (gilt für beide Richtungen)
+        String cyclewayBoth = way.getTag("cycleway:both");
+        if ("shared_lane".equals(cyclewayBoth)) {
+            return true;
+        }
+        
+        // Generisches Tag (gilt für beide Richtungen)
+        if ("shared_lane".equals(cycleway)) {
+            return true;
+        }
+        
+        return false;
     }
     
     /**
