@@ -9,7 +9,7 @@ public class BicycleInfraEV {
     public static final String KEY = "bicycle_infra";
     
     public static EnumEncodedValue<BicycleInfra> create() {
-        return new EnumEncodedValue<>(KEY, BicycleInfra.class);
+        return new EnumEncodedValue<>(KEY, BicycleInfra.class, true);
     }
     
     private BicycleInfraEV() {
