@@ -22,7 +22,7 @@ Import and integrate **external data from CSV files** into routing decisions.
 - Boolean EncodedValue (1 bit per edge)
 - Use in Custom Models to prefer/avoid streets based on external data
 
-📖 **Full Documentation:** [CUSTOM_ROUTING_README.md](./CUSTOM_ROUTING_README.md)
+📖 **Full Documentation:** [CUSTOM_EV_CSV_IMPORT_README.md](./CUSTOM_EV_CSV_IMPORT_README.md)
 
 ### 2. OSM-based Bicycle Infrastructure EncodedValue
 Categorize **bicycle infrastructure directly from OSM tags** for sophisticated bike routing.
