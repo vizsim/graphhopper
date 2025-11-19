@@ -10,6 +10,7 @@ import com.graphhopper.storage.IntsRef;
 /**
  * TagParser der Fahrradinfrastruktur-Kategorien basierend auf OSM-Tags setzt.
  * Die Logik ist inspiriert von den FixMyBerlin Tilda Geo BikelaneCategories.
+ * (Quelle: https://github.com/FixMyBerlin/tilda-geo/blob/main/processing/topics/roads_bikelanes/bikelanes/BikelaneCategories.lua).
  */
 public class BicycleInfraParser implements TagParser {
     
