@@ -1,3 +1,66 @@
+
+# 🚴‍♂️ GraphHopper Fork – Custom EncodedValue Extensions
+
+This repository is a **custom fork of GraphHopper 11.0** that adds support for **custom EncodedValues** to enhance routing capabilities with external data and detailed infrastructure attributes.
+
+All custom changes are located in the branch **`bikelanes_ec`**.
+
+## Custom Extensions
+
+This fork implements two custom EncodedValue extensions:
+
+### 1. CSV-based EncodedValues
+Import and integrate **external data from CSV files** into routing decisions.
+
+**Use Case:** Enrich routing with data that is not available in OSM, such as:
+- Mapillary street-level imagery coverage
+- Any way-specific attributes from external sources
+
+**Key Features:**
+- Load Way-ID → Attribute mappings from CSV files
+- Configurable via YAML (CSV path, column names, value mapping)
+- Boolean EncodedValue (1 bit per edge)
+- Use in Custom Models to prefer/avoid streets based on external data
+
+📖 **Full Documentation:** [CUSTOM_ROUTING_README.md](./CUSTOM_ROUTING_README.md)
+
+### 2. OSM-based Bicycle Infrastructure EncodedValue
+Categorize **bicycle infrastructure directly from OSM tags** for sophisticated bike routing.
+
+**Use Case:** Differentiate between various types of cycling infrastructure for safer and more realistic bicycle routing:
+- Cycleways (separated, on-street, protected)
+- Bike lanes vs. advisory lanes
+- Bicycle roads
+- Shared bus lanes
+- Mixed pedestrian/bicycle paths
+- Direction-dependent infrastructure
+
+**Key Features:**
+- 24+ infrastructure categories based on **FixMyBerlin Tilda BikelaneCategories** (conceptual inspiration only, no code copied)
+- Direction-sensitive parsing (`cycleway:left`, `cycleway:right`)
+- EnumEncodedValue for detailed categorization
+- Optimized for bicycle routing quality
+
+📖 **Full Documentation:** [CUSTOM_EV_BICYCLE_INFRA_README.md](./CUSTOM_EV_BICYCLE_INFRA_README.md)
+
+### Architecture Overview
+
+Both extensions integrate seamlessly into GraphHopper through:
+- **CustomGraphHopper** – Extended GraphHopper class with custom ImportRegistry
+- **Custom TagParsers** – Parse CSV data or OSM tags during import
+- **ImportUnits** – Register custom EncodedValues in the encoding manager
+- **YAML Configuration** – Easy setup without code changes
+
+Both EncodedValues can be **used simultaneously** and combined in Custom Models.
+
+## Branch & Version
+
+This fork is based on **GraphHopper 11.0**
+
+➡️ **Branch: `bikelanes_ec`**  
+https://github.com/vizsim/graphhopper/tree/bikelanes_ec
+
+
 # GraphHopper Routing Engine
 
 ![Build Status](https://github.com/graphhopper/graphhopper/actions/workflows/build.yml/badge.svg?branch=master)
