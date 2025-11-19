@@ -3,6 +3,7 @@ package com.graphhopper.routing.ev;
 /**
  * Enum für verschiedene Fahrrad-Infrastruktur-Typen basierend auf OSM-Tags.
  * Die Kategorien sind von den FixMyBerlin Tilda Geo Kategorien übernommen.
+ * (Quelle: https://github.com/FixMyBerlin/tilda-geo/blob/main/processing/topics/roads_bikelanes/bikelanes/BikelaneCategories.lua).
  */
 public enum BicycleInfra {
     /** Keine spezielle Fahrradinfrastruktur vorhanden */
