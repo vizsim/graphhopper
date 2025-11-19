@@ -1,0 +1,66 @@
+graphhopper:
+
+  # WICHTIG: CustomGraphHopper verwenden!
+  graph.custom_class: com.graphhopper.custom.CustomGraphHopper
+
+  # Custom EncodedValue Konfiguration
+  custom_encoded_value:
+    name: mapillary_coverage                       # Name des EncodedValues
+    csv_path: data/custom/custom_values.csv        # Pfad zur CSV-Datei
+    csv_column_id: osm_id                          # Name der Spalte mit OSM Way IDs
+    csv_column_attribute: mapillary_coverage       # Name der Spalte mit Attributen
+    true_values: pano,regular                      # Komma-getrennte Liste von Werten die zu true führen
+
+  # WICHTIG: EncodedValue registrieren (gleicher Name wie oben!)
+  graph.encoded_values: mapillary_coverage,bicycle_infra
+
+  datareader.file: ""
+  graph.location: graph-cache
+
+  profiles:
+    - name: car
+      vehicle: car
+      weighting: custom
+      custom_model_files: [car.json]
+
+    # Custom Profil mit mapillary_coverage
+    - name: car_custom
+      vehicle: car
+      weighting: custom
+      custom_model:
+        distance_influence: 70
+        priority:
+          - if: "road_class == MOTORWAY"
+            multiply_by: 1.0
+          - if: "mapillary_coverage == false"
+            multiply_by: 0.5
+        speed:
+          - if: "true"
+            limit_to: "car_average_speed"
+          - if: "mapillary_coverage == false"
+            multiply_by: 0.9
+
+  # Speed mode (CH) für schnelleres Routing
+  profiles_ch:
+    - profile: car
+
+  profiles_lm: []
+
+# Dropwizard Server Config
+server:
+  application_connectors:
+    - type: http
+      port: 8989
+      bind_host: 0.0.0.0
+  request_log:
+    appenders: []
+  admin_connectors:
+    - type: http
+      port: 8990
+      bind_host: 0.0.0.0
+
+logging:
+  level: INFO
+  appenders:
+    - type: console
+      time_zone: UTC
