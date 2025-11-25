@@ -4,7 +4,7 @@
 
 Das `bicycle_infra` EncodedValue kategorisiert **Fahrradinfrastruktur basierend auf OSM-Tags**. Anders als CSV-basierte EncodedValues werden die Werte direkt aus den OSM-Daten während des Imports extrahiert.
 
-Die Kategorisierung basiert auf dem **FixMyBerlin Tilda BikelaneCategories** Schema ( https://github.com/FixMyBerlin/tilda-geo/blob/main/processing/topics/roads_bikelanes/bikelanes/BikelaneCategories.lua ) und unterscheidet verschiedene Arten von Radwegen, Radfahrstreifen, Schutzstreifen und anderen Infrastrukturtypen.
+Die Kategorisierung basiert auf dem **FixMyBerlin Tilda BikelaneCategories** Schema (https://github.com/FixMyBerlin/tilda-geo/blob/main/processing/topics/roads_bikelanes/bikelanes/BikelaneCategories.lua) - die Klassifizierungslogik wurde adaptiert, jedoch kein Code kopiert. Das Schema unterscheidet verschiedene Arten von Radwegen, Radfahrstreifen, Schutzstreifen und anderen Infrastrukturtypen.
 
 ## Architektur
 
@@ -18,16 +18,14 @@ Die Kategorisierung basiert auf dem **FixMyBerlin Tilda BikelaneCategories** Sch
 - `com/graphhopper/reader/osm/custom/BicycleInfraParser.java` - TagParser der OSM-Tags analysiert und kategorisiert
 - `com/graphhopper/reader/osm/custom/BicycleInfraImportUnit.java` - ImportUnit zur Registrierung
 
-### Web-Komponente (`web/src/main/java/`)
+### Server-Komponente (`web/src/main/java/`)
 
-**GraphHopper Integration:**
-- `com/graphhopper/custom/CustomGraphHopper.java` - Registriert `bicycle_infra` und fügt `BicycleInfraParser` hinzu
+**GraphHopper Main:**
+- `com/graphhopper/custom/CustomGraphHopper.java` - Erweiterte GraphHopper-Hauptklasse die `bicycle_infra` registriert und initialisiert
 
 ## Infrastruktur-Kategorien
 
 Das Enum `BicycleInfra` definiert folgende Kategorien (Auswahl):
-
-
 
 ### Straßentypen
 - `BICYCLE_ROAD` - Fahrradstraße
