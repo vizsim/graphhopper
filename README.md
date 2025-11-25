@@ -19,7 +19,7 @@ Import and integrate **external data from CSV files** into routing decisions.
 **Key Features:**
 - Load Way-ID → Attribute mappings from CSV files
 - Configurable via YAML (CSV path, column names, value mapping)
-- Boolean EncodedValue (1 bit per edge)
+- Boolean EncodedValue (1 bit per edge) - extensible to Enum for multi-category data
 - Use in Custom Models to prefer/avoid streets based on external data
 
 📖 **Full Documentation:** [CUSTOM_EV_CSV_IMPORT_README.md](./CUSTOM_EV_CSV_IMPORT_README.md)
@@ -36,7 +36,7 @@ Categorize **bicycle infrastructure directly from OSM tags** for sophisticated b
 - Direction-dependent infrastructure
 
 **Key Features:**
-- 24+ infrastructure categories based on **FixMyBerlin Tilda BikelaneCategories** (conceptual inspiration only, no code copied)
+- 24+ infrastructure categories based on **FixMyCity Tilda BikelaneCategories** schema (classification logic adapted, no code copied)
 - Direction-sensitive parsing (`cycleway:left`, `cycleway:right`)
 - EnumEncodedValue for detailed categorization
 - Optimized for bicycle routing quality
