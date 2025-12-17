@@ -1,0 +1,81 @@
+{
+  "priority": [
+    // ---------------------------------------------------------
+    // Basis: Die eingebaute Fahrrad-Priorität übernehmen.
+    // "bike_priority" enthält die komplette interne GH-Bikelogik.
+    // ---------------------------------------------------------
+    { "if": "true", "multiply_by": "bike_priority" },
+
+    // ---------------------------------------------------------
+    // Ungeeignete Wege für ein normales Touren-/Alltagsrad
+    // ---------------------------------------------------------
+    { "if": "mtb_rating > 2",  "multiply_by": "0" },   // schwierige MTB-Trails ausschließen
+    { "if": "hike_rating > 1", "multiply_by": "0" },   // schwierige Wanderwege ausschließen
+
+    // ---------------------------------------------------------
+    // Access-Logik:
+    // - kein Radzugang -> komplett sperren
+    // - außer der Weg ist offiziell in Gegenrichtung befahrbar (Schiebefall)
+    // ---------------------------------------------------------
+    { "if": "!bike_access && (!backward_bike_access || roundabout)", "multiply_by": "0" },
+    { "else_if": "!bike_access && backward_bike_access && !roundabout", "multiply_by": "0.2" },
+
+    // ---------------------------------------------------------
+    // Bevorzugungen: echte Radwege & Radnetze
+    // ---------------------------------------------------------
+    { "if": "road_class == CYCLEWAY", "multiply_by": "1.3" },           // Radweg
+    { "if": "bike_network != OTHER", "multiply_by": "1.2" },            // Teil irgendeines Radnetzes
+
+    // ruhige, kleine Straßen bevorzugen
+    { "if": "road_class == LIVING_STREET || road_class == RESIDENTIAL", "multiply_by": "1.1" },
+
+    // ---------------------------------------------------------
+    // Straßenklassen abwerten (je mehr Autoverkehr, desto schlechter)
+    // ---------------------------------------------------------
+    { "if": "road_class == PRIMARY || road_class == PRIMARY_LINK",   "multiply_by": "0.7" },
+    { "if": "road_class == TRUNK || road_class == TRUNK_LINK",       "multiply_by": "0.3" },
+    { "if": "road_class == MOTORWAY || road_class == MOTORWAY_LINK", "multiply_by": "0" },
+
+    // ---------------------------------------------------------
+    // Oberflächenbewertung (für Touren-/Citybike optimiert)
+    // ---------------------------------------------------------
+    { "if": "surface in {GRAVEL, FINE_GRAVEL, COMPACTED}", "multiply_by": "0.9" },  // etwas schlechter
+    { "if": "surface in {GROUND, DIRT}",                    "multiply_by": "0.7" },  // deutlich schlechter
+    { "if": "surface in {SAND, COBBLESTONE}",               "multiply_by": "0.4" },  // stark vermeiden
+
+    // ---------------------------------------------------------
+    // In dichten Städten große Autostraßen zusätzlich abwerten
+    // ---------------------------------------------------------
+    { "if": "urban_density == CITY && (road_class == PRIMARY || road_class == SECONDARY)",
+      "multiply_by": "0.7"
+    }
+  ],
+
+  "speed": [
+    // ---------------------------------------------------------
+    // Basis: eingebaute Fahrradgeschwindigkeit nutzen
+    // ("bike_average_speed" ergibt je nach Wegklasse zwischen ca. 10–20 km/h)
+    // ---------------------------------------------------------
+    { "if": "true", "limit_to": "bike_average_speed" },
+
+    // ---------------------------------------------------------
+    // Gegen Einbahn -> nur Schrittgeschwindigkeit (Schieben)
+    // ---------------------------------------------------------
+    { "if": "!bike_access && backward_bike_access && !roundabout", "limit_to": "5" },
+
+    // Treppen sehr langsam
+    { "if": "road_class == STEPS", "limit_to": "4" },
+
+    // ---------------------------------------------------------
+    // Oberflächen, die realistisch bremsen
+    // ---------------------------------------------------------
+    { "if": "surface == SAND",        "multiply_by": "0.5" },
+    { "if": "surface == COBBLESTONE", "multiply_by": "0.7" }
+  ],
+
+  // ---------------------------------------------------------
+  // Wie stark dürfen schöne/ruhige Wege belohnt werden?
+  // 80 = guter Kompromiss zwischen direkter Route und Komfort.
+  // ---------------------------------------------------------
+  "distance_influence": 80
+}
