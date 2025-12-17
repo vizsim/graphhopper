@@ -1,0 +1,240 @@
+{
+  "distance_influence": 80,
+  "priority": [
+    {
+      "if": "true",
+      "multiply_by": 0.8
+    },
+    {
+      "if": "mtb_rating > 2",
+      "multiply_by": 0
+    },
+    {
+      "if": "hike_rating > 1",
+      "multiply_by": 0
+    },
+    {
+      "if": "!bike_access && (!backward_bike_access || roundabout)",
+      "multiply_by": 0
+    },
+    {
+      "else_if": "!bike_access && backward_bike_access && !roundabout",
+      "multiply_by": 0.2
+    },
+    {
+      "if": "road_class == FOOTWAY && bicycle_infra == NONE",
+      "multiply_by": 0.2
+    },
+    {
+      "if": "bicycle_infra == CYCLEWAY_ISOLATED",
+      "limit_to": 1.0
+    },
+    {
+      "if": "bicycle_infra == BICYCLE_ROAD",
+      "limit_to": 0.95
+    },
+    {
+      "if": "bicycle_infra == CYCLEWAY_ADJOINING",
+      "limit_to": 0.95
+    },
+    {
+      "if": "bicycle_infra == CYCLEWAY_ADJOINING_OR_ISOLATED",
+      "limit_to": 0.95
+    },
+    {
+      "if": "bicycle_infra == CYCLEWAY_ON_HIGHWAY_PROTECTED",
+      "limit_to": 0.95
+    },
+    {
+      "if": "bicycle_infra == FOOT_AND_CYCLEWAY_SEGREGATED_ISOLATED",
+      "limit_to": 0.95
+    },
+    {
+      "if": "bicycle_infra == CYCLEWAY_LINK",
+      "limit_to": 0.9
+    },
+    {
+      "if": "bicycle_infra == FOOT_AND_CYCLEWAY_SEGREGATED_ADJOINING",
+      "limit_to": 0.9
+    },
+    {
+      "if": "bicycle_infra == FOOT_AND_CYCLEWAY_SEGREGATED_ADJOINING_OR_ISOLATED",
+      "limit_to": 0.9
+    },
+    {
+      "if": "bicycle_infra == BICYCLE_ROAD_VEHICLE_DESTINATION",
+      "limit_to": 0.85
+    },
+    {
+      "if": "bicycle_infra == CYCLEWAY_ON_HIGHWAY_EXCLUSIVE",
+      "limit_to": 0.85
+    },
+    {
+      "if": "bicycle_infra == FOOT_AND_CYCLEWAY_SHARED_ISOLATED",
+      "limit_to": 0.85
+    },
+    {
+      "if": "bicycle_infra == CYCLEWAY_ON_HIGHWAY_ADVISORY_OR_EXCLUSIVE",
+      "limit_to": 0.8
+    },
+    {
+      "if": "bicycle_infra == FOOT_AND_CYCLEWAY_SHARED_ADJOINING",
+      "limit_to": 0.8
+    },
+    {
+      "if": "bicycle_infra == FOOT_AND_CYCLEWAY_SHARED_ADJOINING_OR_ISOLATED",
+      "limit_to": 0.8
+    },
+    {
+      "if": "bicycle_infra == FOOTWAY_BICYCLE_YES_ISOLATED",
+      "limit_to": 0.8
+    },
+    {
+      "if": "bicycle_infra == SHARED_BUS_LANE_BIKE_WITH_BUS",
+      "limit_to": 0.8
+    },
+    {
+      "if": "bicycle_infra == CYCLEWAY_ON_HIGHWAY_ADVISORY",
+      "limit_to": 0.7
+    },
+    {
+      "if": "bicycle_infra == FOOTWAY_BICYCLE_YES_ADJOINING",
+      "limit_to": 0.7
+    },
+    {
+      "if": "bicycle_infra == FOOTWAY_BICYCLE_YES_ADJOINING_OR_ISOLATED",
+      "limit_to": 0.7
+    },
+    {
+      "if": "bicycle_infra == SHARED_BUS_LANE_BUS_WITH_BIKE",
+      "limit_to": 0.7
+    },
+    {
+      "if": "bicycle_infra == CROSSING",
+      "limit_to": 0.6
+    },
+    {
+      "if": "bicycle_infra == PEDESTRIAN_AREA_BICYCLE_YES",
+      "limit_to": 0.6
+    },
+    {
+      "if": "bicycle_infra == SHARED_MOTOR_VEHICLE_LANE",
+      "limit_to": 0.6
+    },
+    {
+      "if": "bicycle_infra == CYCLEWAY_ON_HIGHWAY_BETWEEN_LANES",
+      "limit_to": 0.5
+    },
+    {
+      "if": "bicycle_infra == NONE && road_class == CYCLEWAY",
+      "limit_to": 0.95
+    },
+    {
+      "if": "bicycle_infra == NONE && (road_class == LIVING_STREET || road_class == RESIDENTIAL)",
+      "limit_to": 0.8
+    },
+    {
+      "if": "bicycle_infra == NONE && road_class == SECONDARY",
+      "multiply_by": 0.45
+    },
+    {
+      "if": "bicycle_infra == NONE && road_class == PRIMARY",
+      "multiply_by": 0.3
+    },
+    {
+      "if": "bicycle_infra == NONE && road_class == TRUNK",
+      "multiply_by": 0.2
+    },
+    {
+      "if": "bicycle_infra == NONE && road_class == MOTORWAY",
+      "multiply_by": 0
+    },
+    {
+      "if": "bike_network != OTHER",
+      "limit_to": 0.9
+    },
+    {
+      "if": "surface == GRAVEL || surface == FINE_GRAVEL || surface == COMPACTED",
+      "multiply_by": 0.9
+    },
+    {
+      "if": "surface == GROUND || surface == DIRT",
+      "multiply_by": 0.7
+    },
+    {
+      "if": "surface == SAND || surface == COBBLESTONE",
+      "multiply_by": 0.4
+    },
+    {
+      "if": "mapillary_coverage==true",
+      "multiply_by": 1.0
+    }
+  ],
+  "speed": [
+    {
+      "if": "true",
+      "limit_to": 25
+    },
+    {
+      "if": "!bike_access && backward_bike_access && !roundabout",
+      "limit_to": 5
+    },
+    {
+      "if": "road_class == STEPS",
+      "limit_to": 4
+    },
+    {
+      "if": "average_slope >= 15",
+      "multiply_by": 0.25
+    },
+    {
+      "else_if": "average_slope >= 10",
+      "multiply_by": 0.40
+    },
+    {
+      "else_if": "average_slope >= 8",
+      "multiply_by": 0.55
+    },
+    {
+      "else_if": "average_slope >= 6",
+      "multiply_by": 0.70
+    },
+    {
+      "else_if": "average_slope >= 4",
+      "multiply_by": 0.80
+    },
+    {
+      "else_if": "average_slope >= 2",
+      "multiply_by": 0.90
+    },
+    {
+      "else_if": "average_slope <= -12",
+      "multiply_by": 0.90
+    },
+    {
+      "else_if": "average_slope <= -8",
+      "multiply_by": 1.0
+    },
+    {
+      "else_if": "average_slope <= -4",
+      "multiply_by": 1.0
+    },
+    {
+      "else_if": "average_slope <= -2",
+      "multiply_by": 1.00
+    },
+    {
+      "if": "surface == SAND",
+      "multiply_by": 0.5
+    },
+    {
+      "if": "surface == COBBLESTONE",
+      "multiply_by": 0.7
+    },
+    {
+      "if": "bike_access==false",
+      "limit_to": 0
+    }
+  ]
+}
+

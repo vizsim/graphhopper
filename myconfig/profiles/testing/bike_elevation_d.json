@@ -1,0 +1,90 @@
+
+
+
+
+{
+  "speed": [
+
+    { "if":      "average_slope >= 15", "multiply_by": "0.25" },
+    { "else_if": "average_slope >= 10", "multiply_by": "0.40" },
+    { "else_if": "average_slope >=  8", "multiply_by": "0.55" },
+    { "else_if": "average_slope >=  6", "multiply_by": "0.70" },
+    { "else_if": "average_slope >=  4", "multiply_by": "0.80" },
+    { "else_if": "average_slope >=  2", "multiply_by": "0.90" },
+
+
+    { "else_if": "average_slope <= -12", "multiply_by": "0.90" },
+    { "else_if": "average_slope <= -8",  "multiply_by": "1.05" },
+    { "else_if": "average_slope <= -4",  "multiply_by": "1.10" },
+    { "else_if": "average_slope <= -2",  "multiply_by": "1.05" }
+
+  ]
+}
+
+
+
+
+
+
+//{
+//  "speed": [
+//      { "if":      "average_slope >= 15", "limit_to": "3"},
+//      { "else_if": "average_slope >= 10", "limit_to": "6"},
+//	    { "else_if": "average_slope >=  8", "multiply_by": "0.40"},
+//      { "else_if": "average_slope >=  6", "multiply_by": "0.50"},
+//      { "else_if": "average_slope >=  4", "multiply_by": "0.75"},
+//	    { "else_if": "average_slope >=  2", "multiply_by": "0.90"},
+//	    { "else_if": "average_slope <= -2", "multiply_by": "1.10"},
+//	    { "else_if": "average_slope <= -4", "multiply_by": "1.20"},
+//      { "else_if": "average_slope <= -5", "multiply_by": "1.25"}
+//  ]
+//}
+// Inspiration:  https://www.frankfurt-university.de/fileadmin/standard/Hochschule/Fachbereich_1/FFin/Neue_Mobilitaet/Veroeffentlichungen/2023/ModelRad_Abschlussbericht_final.pdf#page=44
+
+
+
+
+
+// Ansatz 2025_1
+//{
+//  "speed": [
+//      { "if":      "average_slope >= 15", "limit_to": "5"},
+//      { "else_if": "average_slope >= 12", "limit_to": "8"},
+//	    { "else_if": "average_slope >=  10", "multiply_by": "0.5"},
+//  	{ "else_if": "average_slope >=  8", "multiply_by": "0.65"},
+//      { "else_if": "average_slope >=  6", "multiply_by": "0.80"},
+//      { "else_if": "average_slope >=  4", "multiply_by": "0.90"},
+//	    { "else_if": "average_slope >= -3", "multiply_by": "1.10"},
+//      { "else_if": "average_slope <= -5", "multiply_by": "1.20"}
+//  ]
+//}
+
+
+
+// Ansatz 2023
+//{
+//  "distance_influence": 10,
+//  "speed": [
+//    { "if": "average_slope >= 10",  "limit_to": "4" },
+//    { "if": "average_slope >= 5",   "multiply_by": "0.45" },
+//    { "if": "average_slope >= 3.5", "multiply_by": "0.7"  },
+//    { "if": "average_slope >= 2",   "multiply_by": "0.9"  },
+//    { "if": "average_slope < -5",   "multiply_by": "1.25" }
+//  ]
+//}
+
+
+
+
+
+
+// default
+//{
+//  "speed": [
+//      { "if":      "average_slope >= 15", "limit_to": "3"},
+//      { "else_if": "average_slope >= 12", "limit_to": "6"},
+//      { "else_if": "average_slope >=  8", "multiply_by": "0.80"},
+//      { "else_if": "average_slope >=  4", "multiply_by": "0.90"},
+//      { "else_if": "average_slope <= -4", "multiply_by": "1.10"}
+//  ]
+//}

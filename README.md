@@ -60,6 +60,43 @@ This fork is based on **GraphHopper 11.0**
 ➡️ **Branch: `bikelanes_ec`**  
 https://github.com/vizsim/graphhopper/tree/bikelanes_ec
 
+## myconfig
+
+A ready-to-run setup is provided in the `myconfig/` folder:
+
+- graphhopper-web-11.0_custom.jar – prebuilt server jar for this fork
+- config_25-12-14.yml – example configuration matching this fork
+- profiles/ – the routing profiles used with this setup
+
+Not included (fetch yourself as needed):
+
+- Elevation tiles (https://sonny.4lima.de/)
+- OSM extract (e.g., a `.osm.pbf` file)
+- CSV files for the custom EncodedValues
+
+Quick start (example):
+
+```bash
+# 1) Download your desired OSM extract, e.g. Berlin
+wget -O data.osm.pbf http://download.geofabrik.de/europe/germany/berlin-latest.osm.pbf
+
+# 2) Run the prebuilt jar with the provided config
+java -Ddw.graphhopper.datareader.file=$(pwd)/data.osm.pbf \
+  -jar myconfig/graphhopper-web-11.0_custom.jar \
+  server myconfig/config_25-12-14.yml
+```
+
+## License
+
+- Licensed under AGPL-3.0: see [LICENSE.txt](LICENSE.txt)
+- © 2025 vizsim — modifications made in Autumn 2025
+- Derived from GraphHopper (Apache License 2.0): see [NOTICE.md](NOTICE.md)
+- Network use: If offered over a network, provide source per AGPLv3 §13
+
+
+---
+
+_Upstream GraphHopper README (unchanged from here)_
 
 # GraphHopper Routing Engine
 

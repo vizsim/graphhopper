@@ -1,0 +1,27 @@
+{
+  "priority": [
+  
+ // prioritize safer infra
+    { "if": "road_class==CYCLEWAY","multiply_by": "4"},
+	{ "if": "road_class==PATH","multiply_by": "3"},
+	{ "if": "road_class==RESIDENTIAL", "multiply_by": "1.4"},
+	{ "if": "road_class==TRACK", "multiply_by": "1.4"},
+// penetalize  unsafer infra
+	{ "if": "road_class==PRIMARY", "multiply_by": "0.3"},
+	{ "if": "road_class==SECONDARY", "multiply_by": "0.4"},
+	{ "if": "road_class==TERTIARY", "multiply_by": "0.6"},
+
+	
+    { "if": "true",  "multiply_by": "bike_priority" },
+    { "if": "mtb_rating > 2",  "multiply_by": "0" },
+    { "if": "hike_rating > 1",  "multiply_by": "0" },
+    { "if": "!bike_access && (!backward_bike_access || roundabout)",  "multiply_by": "0" },
+    { "else_if": "!bike_access && backward_bike_access",  "multiply_by": "0.2" }
+  ],
+  "speed": [
+    { "if": "true", "limit_to": "bike_average_speed" },
+    { "if": "!bike_access && backward_bike_access", "limit_to": "5" }
+  ]
+}
+
+
