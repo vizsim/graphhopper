@@ -1,0 +1,26 @@
+{
+  "distance_influence": 10,
+  "priority": [
+    {
+      "if": "road_class == MOTORWAY",
+      "multiply_by": 1.0
+    },
+	{ "if": "road_class == FOOTWAY || road_class == PATH || road_class == STEPS || road_class == CYCLEWAY", "multiply_by": 0.0 },
+
+    {
+      "if": "mapillary_coverage == false",
+      "multiply_by": 10
+    }
+  ],
+  "speed": [
+    {
+      "if": "true",
+      "limit_to": "car_average_speed"
+    },
+	{ "if": "car_access == false", "limit_to": 0 },         
+    {
+      "if": "mapillary_coverage == false",
+      "multiply_by": 1.0
+    }
+  ]
+}

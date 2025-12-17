@@ -57,3 +57,15 @@ web:
 |OpenTopography mirror for SRTMGL1 | [acknowledgement OpenTopoGraphy](http://www.opentopography.org/citations) and [data source](http://opentopo.sdsc.edu/datasetMetadata?otCollectionID=OT.042013.4326.1) + SRTMGL1 | no | no
 | GMTED | [public domain, acknowledgment](https://lta.cr.usgs.gov/citation) | no | no
 | Tilezen Joerd (Skadi) | [acknowledgment](https://github.com/tilezen/joerd/blob/master/docs/attribution.md) | no | no
+
+## Fork Attribution and License (vizsim)
+
+This repository is a fork of GraphHopper and includes modifications made in Autumn 2025.
+
+- Project fork: vizsim/graphhopper (branch: `bikelanes_ec`)
+- Copyright: © 2025 vizsim
+- License: GNU Affero General Public License v3 (AGPL-3.0)
+
+This fork is licensed under AGPLv3. The original GraphHopper project is licensed under Apache License 2.0. Attribution to the upstream project and third-party components is retained.
+
+Network use notice (AGPLv3): If you run or offer this software over a network, you must provide the complete corresponding source to users interacting with it, per AGPLv3 Section 13.

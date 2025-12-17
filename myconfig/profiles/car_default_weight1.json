@@ -1,0 +1,95 @@
+{
+  "distance_influence": 90,
+  "priority": [
+    {
+      "if": "true",
+      "multiply_by": 1.0
+    },
+    {
+      "if": "road_class==FOOTWAY||road_class==PATH||road_class==STEPS||road_class==CYCLEWAY",
+      "multiply_by": 0.0
+    },
+    {
+      "if": "road_class==MOTORWAY",
+      "limit_to": 1.0
+    },
+    {
+      "if": "road_class==TRUNK",
+      "limit_to": 0.95
+    },
+    {
+      "if": "road_class==PRIMARY",
+      "limit_to": 0.9
+    },
+    {
+      "if": "road_class==SECONDARY",
+      "limit_to": 0.85
+    },
+    {
+      "if": "road_class==RESIDENTIAL||road_class==LIVING_STREET",
+      "multiply_by": 0.7
+    },
+    {
+      "if": "road_class==SERVICE",
+      "multiply_by": 0.5
+    },
+    {
+      "if": "road_class==TRACK",
+      "multiply_by": 0.4
+    },
+    {
+      "if": "surface==GRAVEL||surface==FINE_GRAVEL||surface==DIRT||surface==GROUND||surface==SAND",
+      "multiply_by": 0.7
+    },
+    {
+      "if": "surface==PAVING_STONES||surface==COBBLESTONE||surface==COMPACTED",
+      "multiply_by": 0.8
+    },
+    {
+      "if": "surface==null",
+      "multiply_by": 0.6
+    },
+    {
+      "if": "mapillary_coverage==true",
+      "multiply_by": 1.0
+    }
+  ],
+  "speed": [
+    {
+      "if": "true",
+      "limit_to": "car_average_speed"
+    },
+    {
+      "if": "true",
+      "multiply_by": 0.8
+    },
+    {
+      "if": "car_access==false",
+      "limit_to": 0
+    },
+    {
+      "if": "road_access==DESTINATION||road_access==PRIVATE||road_access==NO",
+      "limit_to": 0
+    },
+    {
+      "if": "road_class==FOOTWAY||road_class==PATH||road_class==STEPS||road_class==CYCLEWAY",
+      "limit_to": 0
+    },
+    {
+      "if": "surface==SAND",
+      "multiply_by": 0.6
+    },
+    {
+      "if": "surface==GRAVEL||surface==FINE_GRAVEL||surface==GROUND||surface==DIRT",
+      "multiply_by": 0.8
+    },
+    {
+      "if": "surface==PAVING_STONES||surface==COBBLESTONE||surface==COMPACTED",
+      "multiply_by": 0.9
+    }
+  ]
+}
+
+
+
+
