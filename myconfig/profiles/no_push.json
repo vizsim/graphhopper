@@ -1,0 +1,24 @@
+// Aufsatz auf bike_default_weight1.json fuer ein Map-Matching-Profil.
+//
+// Grund: bike_default_weight1.json straft reine Gehwege bereits ab
+//   {"if": "road_class == FOOTWAY && bicycle_infra == NONE", "multiply_by": 0.2}
+// Fuer die Routenplanung reicht das. Beim Map-Matching waegt der HMM die
+// Wegekosten gegen die Distanz zum GPS-Punkt ab, und dabei setzt sich ein
+// Faktor 5 nicht durch: Auf einem Testtrack (10,3 km Berlin) landeten
+// weiterhin 1.268 m auf Wegen mit get_off_bike=true.
+//
+// get_off_bike ist hier der passendere Praedikat als road_class==FOOTWAY:
+// Es bedeutet direkt "hier muesstest du schieben" und erfasst zusaetzlich
+// Treppen und Pfade, waehrend es gemeinsame Geh-/Radwege und "Gehweg, Rad
+// frei" korrekt in Ruhe laesst - die sind als highway=footway getaggt, aber
+// legal befahrbar und machten auf demselben Track 3.007 m aus.
+//
+// Bewusst 0.05 und nicht 0: Bei hartem Ausschluss reisst die Kette, sobald
+// jemand tatsaechlich ein Stueck geschoben hat, und /match antwortet mit
+// "Sequence is broken for submitted track" statt mit einem leicht
+// suboptimalen Ergebnis.
+{
+  "priority": [
+    { "if": "get_off_bike", "multiply_by": 0.05 }
+  ]
+}

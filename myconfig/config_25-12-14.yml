@@ -69,6 +69,8 @@ graphhopper:
   
    - name: bike
      custom_model_files: [bike_default_weight1.json]
+   - name: bike_no_push
+     custom_model_files: [bike_default_weight1.json, no_push.json]
      
    - name: foot
      custom_model_files: [foot_base.json]
@@ -109,6 +111,8 @@ graphhopper:
   profiles_lm: #[]
     - profile: car 
     - profile: bike
+    - profile: bike_no_push
+      preparation_profile: bike
     - profile: foot
 
   #### Encoded Values ####
@@ -141,7 +145,7 @@ graphhopper:
 
   # Make landmark preparation parallel if you have enough RAM. Change this only if you know what you are doing and if
   # the default worked for you.
-  prepare.lm.threads: 4
+  prepare.lm.threads: 1 #4 is good on local machine, but 1 is better fr small server
 
 
 
