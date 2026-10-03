@@ -30,7 +30,7 @@ graphhopper:
   # # java -Xms4g -Xmx12g -D"dw.graphhopper.datareader.file=data/berlin-251109.osm.pbf" -jar graphhopper-web-11.0_custom.jar import config.yml
   
   
-  # java -Xms4g -Xmx12g -D"dw.graphhopper.datareader.file=data/germany-latest.osm.pbf" -jar graphhopper-web-11.0_custom.jar import config_25-12-14.yml
+  # java -Xms4g -Xmx12g -D"dw.graphhopper.datareader.file=data/germany-latest.osm.pbf" -jar graphhopper-web-11.0_custom.jar import config_ghroute.yml
 
 
 # v05

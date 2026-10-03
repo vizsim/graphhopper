@@ -65,7 +65,7 @@ https://github.com/vizsim/graphhopper/tree/bikelanes_ec
 A ready-to-run setup is provided in the `myconfig/` folder:
 
 - graphhopper-web-11.0_custom.jar – prebuilt server jar for this fork
-- config_25-12-14.yml – example configuration matching this fork
+- config_ghroute.yml – example configuration matching this fork
 - profiles/ – the routing profiles used with this setup
 
 Not included (fetch yourself as needed):
@@ -83,7 +83,7 @@ wget -O data.osm.pbf http://download.geofabrik.de/europe/germany/berlin-latest.o
 # 2) Run the prebuilt jar with the provided config
 java -Ddw.graphhopper.datareader.file=$(pwd)/data.osm.pbf \
   -jar myconfig/graphhopper-web-11.0_custom.jar \
-  server myconfig/config_25-12-14.yml
+  server myconfig/config_ghroute.yml
 ```
 
 ## License
