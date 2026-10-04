@@ -176,6 +176,10 @@
       "limit_to": 25
     },
     {
+      "if": "road_environment == FERRY",
+      "limit_to": "ferry_speed"
+    },
+    {
       "if": "!bike_access && backward_bike_access && !roundabout",
       "limit_to": 5
     },
