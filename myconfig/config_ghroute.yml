@@ -132,7 +132,8 @@ graphhopper:
                         osm_way_id,max_slope,average_slope,bike_priority, bike_access, roundabout, bike_average_speed, mtb_rating, hike_rating,
                         country, road_class, road_access, surface, track_type, 
                         bike_network, get_off_bike, max_width, bike_road_access,mapillary_coverage, bicycle_infra,
-                        foot_access, foot_road_access, foot_priority, road_environment, foot_average_speed
+                        foot_access, foot_road_access, foot_priority, road_environment, foot_average_speed,
+                        ferry_speed, cycleway, sidewalk, crossing, lanes, footway, lit
 
   #### Speed, hybrid and flexible mode ####
 
