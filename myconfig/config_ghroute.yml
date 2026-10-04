@@ -239,7 +239,10 @@ graphhopper:
   # the most simple case you can imagine an island without a bridge or ferry connection. The following parameter
   # allows setting a minimum size (number of edges) for such detached components. This can be used to reduce the number
   # of cases where a connection between locations might not be found.
-  prepare.min_network_size: 200
+  # 500 statt 200: Seit Schieben gegen die Einbahnrichtung erlaubt ist, verbinden sich interne Einbahnwege
+  # abgesperrter Gelaende (z. B. Flughafen Tegel) zu Inseln ueber 200 Kanten. Punkte rasten dort ein und
+  # finden dann keine Verbindung.
+  prepare.min_network_size: 500
   prepare.subnetworks.threads: 2
 
   #### Routing ####
