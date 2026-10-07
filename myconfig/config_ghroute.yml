@@ -71,6 +71,10 @@ graphhopper:
      custom_model_files: [bike_default_weight1.json]
    - name: bike_no_push
      custom_model_files: [bike_default_weight1.json, no_push.json]
+   - name: bike_match
+     custom_model_files: [bike_match.json]
+   - name: bike_match_sidepath
+     custom_model_files: [bike_match_sidepath.json]
      
    - name: foot
      custom_model_files: [foot_base.json]

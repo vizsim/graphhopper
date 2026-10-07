@@ -1,0 +1,10 @@
+{
+  "distance_influence": 0,
+  "priority": [
+    { "if": "!bike_access", "multiply_by": "0" },
+    { "if": "footway == SIDEWALK && bicycle_infra == NONE", "multiply_by": "0" }
+  ],
+  "speed": [
+    { "if": "true", "limit_to": "20" }
+  ]
+}
